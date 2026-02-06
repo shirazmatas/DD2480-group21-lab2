@@ -40,6 +40,12 @@
             <artifactId>javax.servlet-api</artifactId>
             <version>4.0.1</version>
         </dependency>
+        <!-- JSON -->
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20251224</version>
+        </dependency>
     </dependencies>
 
     <build>
