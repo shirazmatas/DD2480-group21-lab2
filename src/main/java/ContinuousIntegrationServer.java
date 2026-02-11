@@ -8,7 +8,7 @@ import org.json.*;
 
 public class ContinuousIntegrationServer extends AbstractHandler {
 
-    private static final String WEBHOOK_ENDPOINT = "/"; // TODO change endpoint on GitHub
+    private static final String WEBHOOK_ENDPOINT = "/webhook";
 
     public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
 
