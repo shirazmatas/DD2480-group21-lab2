@@ -1,7 +1,9 @@
 import org.json.JSONObject;
 import java.io.*;
+import java.nio.file.*;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 public class Build {
 
@@ -22,7 +24,6 @@ public class Build {
 
     private String result = "pending";
 
-
     public Build(JSONObject request) throws IOException {
         buildId = UUID.randomUUID().toString();
 
@@ -32,10 +33,8 @@ public class Build {
         url = request.getJSONObject("repository").getString("clone_url");
 
         buildDirectory = new File(BUILDS_DIRECTORY, "build-" + buildId);
-        if (!buildDirectory.mkdirs()){
-            this.result = "failure";
+        if (!buildDirectory.mkdirs())
             throw new IOException("Failed to create build directory");
-        }
 
         projectDirectory = new File(buildDirectory, repository);
         metadataFile = new File(buildDirectory, "metadata.json");
@@ -51,17 +50,14 @@ public class Build {
 
     public void run() {
         try {
-            logInfo("Running build for commit " + commit + " on branch " + branch);
-            updateStatus("in_progress");
+            logInfo("Running build for " + repository + " commit " + commit + " on branch " + branch);
+            updateStatus("pending");
 
-            if (!runCommand(buildDirectory, "git", "clone", "--quiet", "--branch", branch, url, projectDirectory.getAbsolutePath())) {
-                this.result = "failure";
+            if (!runCommand(buildDirectory, "git", "clone", "--quiet", "--branch", branch, url, projectDirectory.getAbsolutePath()))
                 throw new RuntimeException("Failed to clone repository");
-            }
 
             if (!runCommand(projectDirectory, "mvnw.cmd", "clean", "compile")) {
                 logInfo("Compilation failed");
-                this.result = "failure";
                 updateStatus("failure");
                 return;
             }
@@ -70,20 +66,20 @@ public class Build {
 
             if (!runCommand(projectDirectory, "mvnw.cmd", "test")){
                 logInfo("Test failed");
-                this.result = "failure";
                 updateStatus("failure");
                 return;
             }
-            logInfo("Test passed");
 
-            // TODO cleanup
+            logInfo("Tests passed");
 
+            logInfo("Finished build");
             updateStatus("success");
 
         } catch (Exception e) {
             logError("Unexpected error during CI job", e);
-            updateStatus("failure");
+            updateStatus("error");
         } finally {
+            deleteRecursively(projectDirectory);
             logWriter.close();
         }
     }
@@ -104,16 +100,38 @@ public class Build {
     }
 
     private void updateStatus(String status) {
+        result = status;
+        updateMetadata(status);
+        updateGitHubStatus(status);
+    }
+
+    private void updateMetadata(String status) {
         metadata.put("status", status);
-        metadata.put("endTime", Instant.now().toString());
+        if (!status.equals("pending"))
+            metadata.put("endTime", Instant.now().toString());
 
         try (FileWriter writer = new FileWriter(metadataFile)) {
             writer.write(metadata.toString(4));
         } catch (Exception e) {
             logError("Unexpected error during metadata update", e);
         }
+    }
 
+    private void updateGitHubStatus(String status) {
         // TODO update commit status on GitHub
+    }
+
+    private void deleteRecursively(File directory) {
+        try (Stream<Path> paths = Files.walk(directory.toPath())) {
+            paths.sorted(java.util.Comparator.reverseOrder())
+                    .map(java.nio.file.Path::toFile)
+                    .forEach(file -> {
+                        if (!file.delete())
+                            logInfo("Failed to delete: " + file.getAbsolutePath());
+                    });
+        } catch (Exception e) {
+            logError("Unexpected error while deleting directory: " + directory, e);
+        }
     }
 
     private void logInfo(String message) {
@@ -124,11 +142,14 @@ public class Build {
 
     private void logError(String message, Exception e) {
         System.err.println("[ERROR] [Build " + buildId + "] " + message);
-        this.result = "failure";
         e.printStackTrace(System.err);
         logWriter.println(message);
         e.printStackTrace(logWriter);
         logWriter.flush();
+    }
+
+    public String getResult() {
+        return result;
     }
 
 }
