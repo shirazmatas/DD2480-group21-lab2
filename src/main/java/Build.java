@@ -15,7 +15,7 @@ public class Build {
     private final File buildDirectory;
     private final File projectDirectory;
 
-    private String result = "in_progress";
+    private String result = "pending";
 
 
     public Build(JSONObject request) throws IOException {
@@ -68,7 +68,6 @@ public class Build {
 
         } catch (Exception e) {
             logError("Unexpected error", e);
-            this.result = "failure";
             updateStatus("failure");
         }
     }
@@ -98,6 +97,7 @@ public class Build {
 
     private void logError(String message, Exception e) {
         System.err.println("[ERROR] [Build " + buildId + "] " + message);
+        this.result = "failure";
         e.printStackTrace(System.err);
     }
 
