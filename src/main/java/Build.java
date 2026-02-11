@@ -1,5 +1,8 @@
 import org.json.JSONObject;
 import java.io.*;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -12,6 +15,8 @@ public class Build {
     private final String branch;
     private final String commit;
     private final String url;
+    private final String owner;
+    private static final HttpClient HTTP_CLIENT = HttpClient.newHttpClient();
 
     private final File buildDirectory;
     private final File projectDirectory;
@@ -30,6 +35,7 @@ public class Build {
         branch = request.getString("ref").replace("refs/heads/", "");
         commit = request.getString("after");
         url = request.getJSONObject("repository").getString("clone_url");
+        owner = null;
 
         buildDirectory = new File(BUILDS_DIRECTORY, "build-" + buildId);
         if (!buildDirectory.mkdirs()){
@@ -52,7 +58,7 @@ public class Build {
     public void run() {
         try {
             logInfo("Running build for commit " + commit + " on branch " + branch);
-            updateStatus("in_progress");
+            updateStatus("pending");
 
             if (!runCommand(buildDirectory, "git", "clone", "--quiet", "--branch", branch, url, projectDirectory.getAbsolutePath())) {
                 this.result = "failure";
@@ -103,17 +109,68 @@ public class Build {
         return process.waitFor() == 0;
     }
 
-    private void updateStatus(String status) {
-        metadata.put("status", status);
-        metadata.put("endTime", Instant.now().toString());
-
+    /**
+     * Update the state of the build on GitHub with a post-request.
+     * @param state the state to update for the build; expected values include "pending", "success",
+     *              "failure", or "error"
+     */
+    private void updateStatus(String state) {
+        metadata.put("state", state);
+        if (!"pending".equals(state)){
+            metadata.put("endTime", Instant.now().toString());
+        }
         try (FileWriter writer = new FileWriter(metadataFile)) {
             writer.write(metadata.toString(4));
         } catch (Exception e) {
             logError("Unexpected error during metadata update", e);
         }
 
-        // TODO update commit status on GitHub
+        try {
+            String token = System.getenv("GITHUB_TOKEN"); // TODO: Should be read from a config file?
+            if (token == null || token.isBlank()) {
+                logInfo("No GitHub token found, skipping status update");
+                return;
+            }
+            JSONObject payload = getJsonObject(state);
+
+            // URL should be predefined
+            String apiURL = "https://api.github.com/repos/" + owner + "/"+ repository + "/statuses/" + commit;
+
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(java.net.URI.create(apiURL))
+                    .header("Authorization", "token " + token)
+                    .header("Content-Type", "application/json")
+                    .header("Accept", "application/vnd.github.v3+json")
+                    .POST(HttpRequest.BodyPublishers.ofString(payload.toString()))
+                    .build();
+            HttpResponse<String> response = HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+
+            if (response.statusCode() / 100 != 2) {
+                logInfo("Failed to update status: " + response.body() + "Reason: "+ response.statusCode());
+            }
+            else {
+                logInfo("State updated successfully for commit " + commit + " on branch " + branch + " (" + state + ")" + " on repo"+ repository);
+            }
+        }
+        catch (Exception e) {
+            logError("Unexpected error during state update", e);
+        }
+    }
+
+    private JSONObject getJsonObject(String state) {
+        String description = switch (state) {
+            case "success" -> "Build " + buildId + " succeeded";
+            case "failure" -> "Build " + buildId + " failed";
+            case "pending" -> "Build " + buildId + " is pending";
+            case "error" -> "Build " + buildId + " encountered an error";
+            default -> "Build " + buildId + state;
+            // change default behaviour?
+        };
+        JSONObject payload = new JSONObject();
+        payload.put("state", state);
+        payload.put("description", description);
+        payload.put("context", "DD2480-continuous-integration-server");
+        return payload;
     }
 
     private void logInfo(String message) {
