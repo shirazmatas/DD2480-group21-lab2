@@ -1,11 +1,10 @@
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.json.*;
+import org.eclipse.jetty.server.*;
+import org.eclipse.jetty.server.handler.*;
 
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.json.*;
 
 public class ContinuousIntegrationServer extends AbstractHandler {
 
@@ -36,7 +35,7 @@ public class ContinuousIntegrationServer extends AbstractHandler {
                 Build build = new Build(body);
                 new Thread(build::run).start();
             } catch (Exception e) {
-                logError("Unexpected error", e);
+                logError("Unexpected error during setup", e);
             }
         }
     }
@@ -52,7 +51,17 @@ public class ContinuousIntegrationServer extends AbstractHandler {
 
     public static void main(String[] args) throws Exception {
         Server server = new Server(8080);
-        server.setHandler(new ContinuousIntegrationServer()); 
+
+        ContinuousIntegrationServer ciHandler = new ContinuousIntegrationServer();
+
+        ResourceHandler fileHandler = new ResourceHandler();
+        fileHandler.setResourceBase("builds");
+        fileHandler.setDirectoriesListed(true);
+
+        HandlerList handlers = new HandlerList();
+        handlers.setHandlers(new Handler[]{fileHandler, ciHandler});
+        server.setHandler(handlers);
+
         server.start();
         server.join();
     }
