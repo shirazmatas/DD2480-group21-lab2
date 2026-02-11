@@ -47,6 +47,12 @@ public class Build {
             logInfo("Compilation success");
 
             // TODO run tests
+            if (!runCommand(projectDirectory, "mvnw.cmd", "test")){
+                logInfo("Test failed");
+                updateStatus("failure");
+                return;
+            }
+            logInfo("Test passed");
 
             // TODO cleanup
 
