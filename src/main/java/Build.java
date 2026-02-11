@@ -15,6 +15,9 @@ public class Build {
     private final File buildDirectory;
     private final File projectDirectory;
 
+    private String result = "pending";
+
+
     public Build(JSONObject request) throws IOException {
         buildId = UUID.randomUUID().toString();
 
@@ -24,8 +27,10 @@ public class Build {
         url = request.getJSONObject("repository").getString("clone_url");
 
         buildDirectory = new File(BUILDS_DIRECTORY, "build-" + buildId);
-        if (!buildDirectory.mkdirs())
+        if (!buildDirectory.mkdirs()){
+            this.result = "failure";
             throw new IOException("Failed to create build directory");
+        }
 
         projectDirectory = new File(buildDirectory, repository);
     }
@@ -35,18 +40,27 @@ public class Build {
             logInfo("Running build for commit " + commit + " on branch " + branch);
             updateStatus("in_progress");
 
-            if (!runCommand(buildDirectory, "git", "clone", "--quiet", "--branch", branch, url, projectDirectory.getAbsolutePath()))
+            if (!runCommand(buildDirectory, "git", "clone", "--quiet", "--branch", branch, url, projectDirectory.getAbsolutePath())) {
+                this.result = "failure";
                 throw new RuntimeException("Failed to clone repository");
+            }
 
             if (!runCommand(projectDirectory, "mvnw.cmd", "clean", "compile")) {
                 logInfo("Compilation failed");
+                this.result = "failure";
                 updateStatus("failure");
                 return;
             }
 
             logInfo("Compilation success");
 
-            // TODO run tests
+            if (!runCommand(projectDirectory, "mvnw.cmd", "test")){
+                logInfo("Test failed");
+                this.result = "failure";
+                updateStatus("failure");
+                return;
+            }
+            logInfo("Test passed");
 
             // TODO cleanup
 
@@ -83,6 +97,7 @@ public class Build {
 
     private void logError(String message, Exception e) {
         System.err.println("[ERROR] [Build " + buildId + "] " + message);
+        this.result = "failure";
         e.printStackTrace(System.err);
     }
 
