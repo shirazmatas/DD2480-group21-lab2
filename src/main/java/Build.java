@@ -107,14 +107,9 @@ public class Build {
 
     /**
      * Update the state of the build on GitHub with a post-request.
-     * @param state the state to update for the build; expected values include "pending", "success",
+     * @param status the state to update for the build; expected values include "pending", "success",
      *              "failure", or "error"
      */
-    private void updateStatus(String state) {
-        metadata.put("state", state);
-        if (!"pending".equals(state)){
-            metadata.put("endTime", Instant.now().toString());
-        }
     private void updateStatus(String status) {
         result = status;
         updateMetadata(status);
@@ -133,7 +128,7 @@ public class Build {
         }
     }
 
-    private void updateGitHubStatus(String status) {
+    private void updateGitHubStatus(String state) {
         // TODO update commit status on GitHub
         try {
             String token = System.getenv("GITHUB_TOKEN"); // TODO: Should be read from a config file?
