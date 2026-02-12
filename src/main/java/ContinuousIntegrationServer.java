@@ -6,16 +6,31 @@ import org.eclipse.jetty.server.handler.*;
 
 import org.json.*;
 
+/**
+ * Description of ContinousIntegrationServer
+ * Extends AbstractHandler. Handles incoming webhook pushes from github and manages the commits status as well as
+ * initiates tests.
+ * Displays the logs and metadata in html form. Define port within main to be used.
+ * Uses github token stored in environment.
+ * creates the builds in the /builds folder.
+ * @author Lucas Lund
+ * @author Barnabas Tanczos
+ * @author Shengye (Óscar) Huang Wu
+ * @version 1.0
+ */
 public class ContinuousIntegrationServer extends AbstractHandler {
 
     private static final String WEBHOOK_ENDPOINT = "/webhook";
 
     /**
-     * The handler for incoming requests. Calls and uses build
-     * @param target
-     * @param baseRequest
-     * @param request
-     * @param response
+     * Handles incoming HTTP requests to the server. Accepting only webhook_endpoint target and checking fields are correct.
+     * This method processes the request appropriately, sets the response status, and handles webhook events.
+     * Unsupported endpoints, methods, or events are flagged and logged.
+     *
+     * @param target the target of the request, representing the part of the URI path that the handler is responsible for
+     * @param baseRequest the original unwrapped Jetty request object
+     * @param request the servlet request object providing detailed request information, including headers and body content
+     * @param response the servlet response object used to send data back to the client
      */
     public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
 
