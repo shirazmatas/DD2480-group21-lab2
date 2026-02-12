@@ -12,12 +12,15 @@ class BuildTest {
 
     private JSONObject createPayload(String branchName) {
         JSONObject repo = new JSONObject();
-        repo.put("name", "test-repo");
+        repo.put("name", "dd2480Test");
         repo.put("clone_url", TEST_REPO_URL);
+        JSONObject owner = new JSONObject();
+        owner.put("login", "OscarHd13");
+        repo.put("owner", owner);
 
         JSONObject json = new JSONObject();
         json.put("ref", "refs/heads/" + branchName);
-        json.put("after", "dummy-sha");
+        json.put("after", "bdc3e451b706e6908d1c4ed2944b230cee812c4a");
         json.put("repository", repo);
 
         return json;

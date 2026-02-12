@@ -36,7 +36,7 @@ public class Build {
         branch = request.getString("ref").replace("refs/heads/", "");
         commit = request.getString("after");
         url = request.getJSONObject("repository").getString("clone_url");
-        owner = null;
+        owner = request.getJSONObject("repository").getJSONObject("owner").getString("login");
 
         buildDirectory = new File(BUILDS_DIRECTORY, "build-" + buildId);
         if (!buildDirectory.mkdirs())
@@ -54,6 +54,11 @@ public class Build {
         metadata.put("startTime", Instant.now().toString());
     }
 
+    /**
+     * Runs the recently built commit.
+     * Immediately sets the status to "pending".
+     * based on tests it sets the status to "success", "failure" or "error" if it crashes
+     */
     public void run() {
         try {
             logInfo("Running build for " + repository + " commit " + commit + " on branch " + branch);
@@ -90,6 +95,14 @@ public class Build {
         }
     }
 
+    /**
+     * Runs a command in a directory and returns its exit code.
+     * @param directory the directory to run the command in
+     * @param command the command to run
+     * @return the exit code of the command
+     * @throws IOException
+     * @throws InterruptedException
+     */
     private boolean runCommand(File directory, String... command) throws IOException, InterruptedException {
         Process process = new ProcessBuilder(command)
                 .directory(directory)
@@ -110,7 +123,8 @@ public class Build {
      */
     private String getMavenCommand() {
         boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
-        return isWindows ? "mvnw.cmd" : "mvnw";
+        File mvnFile = new File(isWindows ? "mvnw.cmd" : "mvnw");
+        return mvnFile.getAbsolutePath();
     }
 
     /**
@@ -124,6 +138,10 @@ public class Build {
         updateGitHubStatus(status);
     }
 
+    /**
+     * Updates the metadata file with the current status.
+     * @param status the status to set ("pending", "success", "failure", "error")
+     */
     private void updateMetadata(String status) {
         metadata.put("status", status);
         if (!status.equals("pending"))
@@ -135,7 +153,10 @@ public class Build {
             logError("Unexpected error during metadata update", e);
         }
     }
-
+    /**
+     * Updates the commit status on GitHub. It sends a post request to the URL of the incoming webhook.
+     * @param state the status to set ("pending", "success", "failure", "error")
+     */
     private void updateGitHubStatus(String state) {
         // TODO update commit status on GitHub
         try {
@@ -148,6 +169,7 @@ public class Build {
 
             // URL should be predefined
             String apiURL = "https://api.github.com/repos/" + owner + "/"+ repository + "/statuses/" + commit;
+            logInfo("Sending commit status update request to " + apiURL);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(java.net.URI.create(apiURL))
@@ -170,6 +192,11 @@ public class Build {
         }
     }
 
+    /**
+     * Helper function to create the jsonObject containing description and payload information.
+     * @param state the state that the commit is set too.
+     * @return the payload.
+     */
     private JSONObject getJsonObject(String state) {
         String description = switch (state) {
             case "success" -> "Build " + buildId + " succeeded";
@@ -186,6 +213,10 @@ public class Build {
         return payload;
     }
 
+    /**
+     * Recursively deletes a directory and its contents.
+     * @param directory the directory to delete
+     */
     private void deleteRecursively(File directory) {
         try (Stream<Path> paths = Files.walk(directory.toPath())) {
             paths.sorted(java.util.Comparator.reverseOrder())
@@ -199,12 +230,21 @@ public class Build {
         }
     }
 
+    /**
+     * Helper function that logs a message to the console and the build log file.
+     * @param message the message to log
+     */
     private void logInfo(String message) {
         System.out.println("[INFO] [Build " + buildId + "] " + message);
         logWriter.println(message);
         logWriter.flush();
     }
 
+    /**
+     * Helper function that logs an error message to the console and the build log file.
+     * @param message the message to log
+     * @param e the exception that caused the error
+     */
     private void logError(String message, Exception e) {
         System.err.println("[ERROR] [Build " + buildId + "] " + message);
         e.printStackTrace(System.err);
@@ -213,6 +253,10 @@ public class Build {
         logWriter.flush();
     }
 
+    /**
+     * Returns the current result of the build.
+     * @return the current result of the build ("pending", "success", "failure", "error")
+     */
     public String getResult() {
         return result;
     }

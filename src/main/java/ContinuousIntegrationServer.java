@@ -10,6 +10,13 @@ public class ContinuousIntegrationServer extends AbstractHandler {
 
     private static final String WEBHOOK_ENDPOINT = "/webhook";
 
+    /**
+     * The handler for incoming requests. Calls and uses build
+     * @param target
+     * @param baseRequest
+     * @param request
+     * @param response
+     */
     public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response) {
 
         logInfo("Incoming request");
@@ -40,10 +47,19 @@ public class ContinuousIntegrationServer extends AbstractHandler {
         }
     }
 
+    /**
+     * Helper method to log messages to the console.
+     * @param message the message to be logged
+     */
     private void logInfo(String message) {
         System.out.println("[INFO] [Server] " + message);
     }
 
+    /**
+     * Helper method to log errors to the console.
+     * @param message the message to be logged
+     * @param e the exception that caused the error
+     */
     private void logError(String message, Exception e) {
         System.err.println("[ERROR] [Server] " + message);
         e.printStackTrace(System.err);
