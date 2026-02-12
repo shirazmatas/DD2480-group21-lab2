@@ -65,6 +65,11 @@ public class ContinuousIntegrationServer extends AbstractHandler {
         e.printStackTrace(System.err);
     }
 
+    /**
+     * Main function that initiates the server, starts it and handles the files.
+     * @param args the arguments fed into main function
+     * @throws Exception the exception that caused an error.
+     */
     public static void main(String[] args) throws Exception {
         Server server = new Server(8080);
 
