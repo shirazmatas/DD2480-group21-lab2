@@ -36,7 +36,7 @@ public class Build {
         branch = request.getString("ref").replace("refs/heads/", "");
         commit = request.getString("after");
         url = request.getJSONObject("repository").getString("clone_url");
-        owner = request.getJSONObject("repository").getString("owner");
+        owner = request.getJSONObject("repository").getJSONObject("owner").getString("login");
 
         buildDirectory = new File(BUILDS_DIRECTORY, "build-" + buildId);
         if (!buildDirectory.mkdirs())
@@ -123,7 +123,8 @@ public class Build {
      */
     private String getMavenCommand() {
         boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
-        return isWindows ? "mvnw.cmd" : "mvnw";
+        File mvnFile = new File(isWindows ? "mvnw.cmd" : "mvnw");
+        return mvnFile.getAbsolutePath();
     }
 
     /**
@@ -168,6 +169,7 @@ public class Build {
 
             // URL should be predefined
             String apiURL = "https://api.github.com/repos/" + owner + "/"+ repository + "/statuses/" + commit;
+            logInfo("Sending commit status update request to " + apiURL);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(java.net.URI.create(apiURL))
