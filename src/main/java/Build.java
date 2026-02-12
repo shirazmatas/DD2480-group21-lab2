@@ -62,7 +62,7 @@ public class Build {
             if (!runCommand(buildDirectory, "git", "clone", "--quiet", "--branch", branch, url, projectDirectory.getAbsolutePath()))
                 throw new RuntimeException("Failed to clone repository");
 
-            if (!runCommand(projectDirectory, "mvnw.cmd", "clean", "compile")) {
+            if (!runCommand(projectDirectory, getMavenCommand(), "clean", "compile")) {
                 logInfo("Compilation failed");
                 updateStatus("failure");
                 return;
@@ -70,7 +70,7 @@ public class Build {
 
             logInfo("Compilation success");
 
-            if (!runCommand(projectDirectory, "mvnw.cmd", "test")){
+            if (!runCommand(projectDirectory,getMavenCommand(), "test")){
                 logInfo("Test failed");
                 updateStatus("failure");
                 return;
@@ -103,6 +103,14 @@ public class Build {
         }
 
         return process.waitFor() == 0;
+    }
+
+    /**
+     * Return the Maven wrapper command depending on the OS.
+     */
+    private String getMavenCommand() {
+        boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+        return isWindows ? "mvnw.cmd" : "mvnw";
     }
 
     /**
