@@ -55,7 +55,7 @@ public class Build {
     }
 
     /**
-     * Runs the recently built commit.
+     * Clones, compiles, and Runs the tests for the recent commit.
      * Immediately sets the status to "pending".
      * based on tests it sets the status to "success", "failure" or "error" if it crashes
      */
@@ -158,9 +158,8 @@ public class Build {
      * @param state the status to set ("pending", "success", "failure", "error")
      */
     private void updateGitHubStatus(String state) {
-        // TODO update commit status on GitHub
         try {
-            String token = System.getenv("GITHUB_TOKEN"); // TODO: Should be read from a config file?
+            String token = System.getenv("GITHUB_TOKEN");
             if (token == null || token.isBlank()) {
                 logInfo("No GitHub token found, skipping status update");
                 return;
@@ -184,7 +183,7 @@ public class Build {
                 logInfo("Failed to update status: " + response.body() + "Reason: "+ response.statusCode());
             }
             else {
-                logInfo("State updated successfully for commit " + commit + " on branch " + branch + " (" + state + ")" + " on repo"+ repository);
+                logInfo("State updated successfully for commit " + commit + " on branch " + branch + " (" + state + ")" + " on repo "+ repository);
             }
         }
         catch (Exception e) {

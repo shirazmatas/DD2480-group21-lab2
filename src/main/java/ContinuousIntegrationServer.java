@@ -32,7 +32,7 @@ public class ContinuousIntegrationServer extends AbstractHandler {
         } else if (!request.getMethod().equals("POST")) {
             response.setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
             logInfo("Method not allowed");
-        } else if (!"issue_comment".equals(request.getHeader("X-GitHub-Event"))) { // TODO change to "push"
+        } else if (!"push".equals(request.getHeader("X-GitHub-Event"))) {
             response.setStatus(HttpServletResponse.SC_OK);
             logInfo("Event is not 'push'");
         } else {
