@@ -39,6 +39,11 @@ To run locally, use a service like ngrok to tunnel to port 8080, and configure t
 ### Example server
 The URL of the example server running on our machine is [adoptively-worldwide-myah.ngrok-free.dev](adoptively-worldwide-myah.ngrok-free.dev).
 
+### Viewing Javadocs
+1. Go into /docs.
+2. Open index.html.
+
+
 ## Contributions
 This project was developed by Group 21:
 - **Barnabas Tanczos:** ContinuousIntegrationServer request handling, Build class skeleton, compilation, logging, cleanup, README
