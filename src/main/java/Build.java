@@ -8,6 +8,13 @@ import java.time.Instant;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+
+/**
+ * Represents a build process for a specific commit in a given repository.
+ * The build clones a repository, compiles the code,
+ * runs the tests, and update GitHub commit statuses upon completion.
+ * Used in ContinousIntegrationServer.java
+ */
 public class Build {
 
     private static final String BUILDS_DIRECTORY = "builds/";
@@ -29,6 +36,17 @@ public class Build {
 
     private String result = "pending";
 
+    /**
+     * Constructs a new Build object using the provided webhook request payload.
+     * It uses the fields repository information, branch, commit, and build directories
+     * based on the JSON payload. It also creates the necessary directories for the build process
+     * and prepares a log writer and the metadata file.
+     *
+     * @param request the JSON object containing the webhook data,
+     *                repository information, branch name, commit ID,
+     *                and related configuration details
+     * @throws IOException if an error occurs while creating the build directory or initializing resources
+     */
     public Build(JSONObject request) throws IOException {
         buildId = UUID.randomUUID().toString();
 
@@ -96,12 +114,15 @@ public class Build {
     }
 
     /**
-     * Runs a command in a directory and returns its exit code.
-     * @param directory the directory to run the command in
-     * @param command the command to run
-     * @return the exit code of the command
-     * @throws IOException
-     * @throws InterruptedException
+     * Executes a given command in a specified directory and captures the output.
+     * The method waits for the command execution to complete and checks the result.
+     *
+     * @param directory the directory in which the command should be executed
+     * @param command the command to be executed, where each part of the command (e.g., executable and arguments)
+     *                is provided as a separate string
+     * @return {@code true} if the command executes successfully, {@code false} otherwise
+     * @throws IOException if an I/O error occurs while starting or reading the process
+     * @throws InterruptedException if the thread is interrupted while waiting for the process to complete
      */
     private boolean runCommand(File directory, String... command) throws IOException, InterruptedException {
         Process process = new ProcessBuilder(command)
