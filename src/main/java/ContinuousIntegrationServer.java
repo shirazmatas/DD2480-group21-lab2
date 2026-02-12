@@ -60,7 +60,7 @@ public class ContinuousIntegrationServer extends AbstractHandler {
      * @param message the message to be logged
      * @param e the exception that caused the error
      */
-    private void logError(String message, Exception e) {
+    private void logError(String message, Excep
         System.err.println("[ERROR] [Server] " + message);
         e.printStackTrace(System.err);
     }
