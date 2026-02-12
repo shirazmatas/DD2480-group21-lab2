@@ -36,7 +36,7 @@ public class Build {
         branch = request.getString("ref").replace("refs/heads/", "");
         commit = request.getString("after");
         url = request.getJSONObject("repository").getString("clone_url");
-        owner = null;
+        owner = request.getJSONObject("repository").getString("owner");
 
         buildDirectory = new File(BUILDS_DIRECTORY, "build-" + buildId);
         if (!buildDirectory.mkdirs())
@@ -190,6 +190,11 @@ public class Build {
         }
     }
 
+    /**
+     * Helper function to create the jsonObject containing description and payload information.
+     * @param state the state that the commit is set too.
+     * @return the payload.
+     */
     private JSONObject getJsonObject(String state) {
         String description = switch (state) {
             case "success" -> "Build " + buildId + " succeeded";
